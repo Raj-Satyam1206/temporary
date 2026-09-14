@@ -1,11 +1,11 @@
-# Episode 10 — Thread Pool in libuv
+# Episode 11 — Creating a Server
 
-![Node.js](https://img.shields.io/badge/Node.js-Thread%20Pool-green?logo=node.js)
-![JavaScript](https://img.shields.io/badge/JavaScript-Asynchronous%20Programming-yellow?logo=javascript)
-![libuv](https://img.shields.io/badge/libuv-Thread%20Pool-blue)
-![Episode](https://img.shields.io/badge/Episode-10-orange)
+![Node.js](https://img.shields.io/badge/Node.js-HTTP%20Server-green?logo=node.js)
+![JavaScript](https://img.shields.io/badge/JavaScript-Server--Side-yellow?logo=javascript)
+![HTTP](https://img.shields.io/badge/HTTP-Client%20%7C%20Server-blue)
+![Episode](https://img.shields.io/badge/Episode-11-orange)
 
-> A detailed study of the **libuv thread pool, asynchronous file-system operations, DNS lookups, cryptographic work, `UV_THREADPOOL_SIZE`, networking with sockets, file descriptors, `epoll`, `kqueue`, Event Emitters, Streams, Buffers, Pipes, and the importance of not blocking Node.js's main thread.**
+> A detailed set of notes on **servers, client-server architecture, sockets, TCP/IP, protocols, packets, DNS, ports, URL routing, distributed server architecture, Socket vs WebSocket, creating an HTTP server with Node.js, handling routes, and Express**.
 
 ---
 
@@ -13,63 +13,86 @@
 
 - [Overview](#-overview)
 - [Learning Objectives](#-learning-objectives)
-- [What is the libuv Thread Pool?](#-what-is-the-libuv-thread-pool)
-- [How an Asynchronous Task Uses the Thread Pool](#-how-an-asynchronous-task-uses-the-thread-pool)
-- [Thread Pool Example — File Reading](#-thread-pool-example--file-reading)
-- [Default Thread Pool Size](#-default-thread-pool-size)
-- [What Happens When More Tasks Arrive Than Threads?](#-what-happens-when-more-tasks-arrive-than-threads)
-- [When Does libuv Use the Thread Pool?](#-when-does-libuv-use-the-thread-pool)
-- [Is Node.js Single-Threaded or Multi-Threaded?](#-is-nodejs-single-threaded-or-multi-threaded)
-- [Order of Execution Is Not Guaranteed](#-order-of-execution-is-not-guaranteed)
-- [Changing the Thread Pool Size](#-changing-the-thread-pool-size)
-- [Do APIs Use the Thread Pool?](#-do-apis-use-the-thread-pool)
-- [Networking in libuv](#-networking-in-libuv)
+- [What is a Server?](#-what-is-a-server)
+- [Server: Hardware vs Software](#-server-hardware-vs-software)
+- [Deploying an Application on a Server](#-deploying-an-application-on-a-server)
+- [AWS and Cloud Computing](#-aws-and-cloud-computing)
+- [Can a Laptop Be Used as a Server?](#-can-a-laptop-be-used-as-a-server)
+- [Software Servers in Node.js](#-software-servers-in-nodejs)
+- [Client-Server Architecture](#-client-server-architecture)
 - [Sockets](#-sockets)
-- [File Descriptors](#-file-descriptors)
-- [`epoll` and `kqueue`](#-epoll-and-kqueue)
-- [How `epoll` / `kqueue` Works](#-how-epoll--kqueue-works)
-- [Thread Pool vs Network I/O](#-thread-pool-vs-network-io)
-- [Event Emitters](#-event-emitters)
-- [Streams](#-streams)
-- [Buffers](#-buffers)
-- [Pipes](#-pipes)
-- [Don't Block the Main Thread](#-dont-block-the-main-thread)
-- [Important Data Structures](#-important-data-structures)
-- [Naming Is Important](#-naming-is-important)
+- [TCP/IP](#-tcpip)
+- [What is a Protocol?](#-what-is-a-protocol)
+- [HTTP, FTP and SMTP](#-http-ftp-and-smtp)
+- [How is Data Sent Over a Network?](#-how-is-data-sent-over-a-network)
+- [Streams and Buffers](#-streams-and-buffers)
+- [DNS](#-dns)
+- [Domain Name to IP Address](#-domain-name-to-ip-address)
+- [IP Address + Port](#-ip-address--port)
+- [Can Multiple Servers Run on One Machine?](#-can-multiple-servers-run-on-one-machine)
+- [Mapping Domain Names, Ports and Paths](#-mapping-domain-names-ports-and-paths)
+- [Distributed Server Architecture](#-distributed-server-architecture)
+- [Frontend Server](#-frontend-server)
+- [Backend Server](#-backend-server)
+- [Database Server](#-database-server)
+- [Media and File Servers](#-media-and-file-servers)
+- [Inter-Server Communication](#-inter-server-communication)
+- [Socket vs WebSocket](#-socket-vs-websocket)
+- [Creating a Server with Node.js](#-creating-a-server-with-nodejs)
+- [Handling Different URLs](#-handling-different-urls)
+- [Express](#-express)
 - [Important Interview Questions](#-important-interview-questions)
+- [Common Misconceptions](#-common-misconceptions)
 - [Quick Revision](#-quick-revision)
 - [Concept Comparison](#-concept-comparison)
+- [Complete Mental Model](#-complete-mental-model)
 - [Key Takeaways](#-key-takeaways)
-- [Final Mental Model](#-final-mental-model)
 - [Conclusion](#-conclusion)
 
 ---
 
 # 🧐 Overview
 
-Episode 10 focuses on an important part of the Node.js asynchronous architecture:
+Episode 11 introduces the practical idea of **creating and understanding a server**.
 
-> **The thread pool in libuv.**
+The episode begins with a fundamental question:
 
-The supplied material explains that, for certain asynchronous tasks, V8 hands the work to libuv. For example, a file-system operation can be assigned to a thread in libuv's thread pool; that thread makes the request to the operating system and remains occupied until the operation completes. The thread is then freed for another operation. fileciteturn3file1L33-L45
+> **What is a server?**
 
-The episode expands this discussion to:
+The material explains that the word **server** can refer to either:
 
-- Thread pool size
-- File-system operations
-- DNS lookups
-- Cryptographic operations
-- Concurrency limits
-- Networking
-- Sockets
-- File descriptors
-- `epoll`
-- `kqueue`
-- Event Emitters
-- Streams
-- Buffers
-- Pipes
-- Main-thread performance
+1. **Hardware** — a physical machine that provides resources and services to clients.
+2. **Software** — an application that receives requests and delivers data or responses to clients. fileciteturn4file1L3-L10
+
+From there, the episode builds a complete conceptual path:
+
+```text
+Server
+  ↓
+Client-Server Architecture
+  ↓
+Socket
+  ↓
+TCP/IP
+  ↓
+Packets
+  ↓
+DNS
+  ↓
+IP Address
+  ↓
+Port
+  ↓
+Application
+  ↓
+HTTP Server
+  ↓
+Node.js
+  ↓
+Express
+```
+
+The supplied PDF also expands the topic into distributed architectures involving frontend servers, backend servers, databases, file/media servers, and CDNs. fileciteturn4file0L167-L216
 
 ---
 
@@ -77,1202 +100,1460 @@ The episode expands this discussion to:
 
 After completing this episode, you should be able to explain:
 
-- What the libuv thread pool is
-- Why libuv needs a thread pool
-- How file-system operations use the thread pool
-- What happens when all thread-pool threads are busy
-- The default thread-pool size
-- How to configure `UV_THREADPOOL_SIZE`
-- Which types of operations use the thread pool
-- Why Node.js can be described as single-threaded in one context and multi-threaded in another
-- Why completion order is not guaranteed
-- Why high-concurrency network APIs do not simply consume one thread per request
-- What sockets are
-- What file descriptors are
-- How `epoll` and `kqueue` help scale network connections
-- The relationship between libuv and OS-level I/O notification mechanisms
-- What Event Emitters are
-- What Streams are
-- What Buffers are
-- What Pipes are
-- Why blocking the main thread is dangerous
-- Why data structures matter in systems programming
-- Why naming matters in software development
+- What a server is
+- The difference between server hardware and server software
+- What it means to deploy an application on a server
+- The role of the operating system
+- What a client is
+- How client-server communication works
+- What a socket is
+- What TCP/IP is
+- What a protocol is
+- What HTTP, FTP and SMTP are
+- How data is transmitted as packets
+- Why streams and buffers matter
+- What DNS does
+- How a domain name maps to an IP address
+- What a port is
+- How multiple applications can run on one server
+- How IP + port identifies an application endpoint
+- How URL paths can be mapped to different applications
+- What distributed server architecture means
+- The role of frontend, backend, database and media servers
+- What inter-server communication is
+- The difference between a normal socket connection and WebSocket
+- How to create an HTTP server using Node.js
+- How to handle different request URLs
+- Why Express is commonly used on top of Node.js
 
 ---
 
-# 🧵 What is the libuv Thread Pool?
+# 🖥️ What is a Server?
 
-The **libuv thread pool** is a collection of worker threads used by libuv for certain asynchronous operations.
+The term **server** can have two meanings depending on context.
 
-The basic idea is:
+### Hardware Server
 
-```text
-JavaScript
-    │
-    ▼
-    V8
-    │
-    │ Asynchronous operation
-    ▼
-  libuv
-    │
-    ▼
- Thread Pool
-    │
-    ▼
- Worker Thread
-    │
-    ▼
-    OS
-```
+A hardware server is a physical computer that provides resources and services to other computers over a network.
 
-For example, when reading a file:
+It has resources such as:
 
 ```text
-fs operation
-     ↓
-   libuv
-     ↓
-Thread Pool
-     ↓
- Worker Thread
-     ↓
-    OS
-     ↓
-Operation completes
-     ↓
-Thread becomes available
+CPU
+RAM
+Storage
+Network Interface
 ```
 
-The supplied Episode-10 PDF describes this flow for file reading and explains that the engaged worker remains occupied while the operation is in progress. fileciteturn3file1L33-L45
+### Software Server
 
----
-
-# 🔄 How an Asynchronous Task Uses the Thread Pool
-
-Consider a file-system operation:
-
-```javascript
-fs.readFile("file.txt", "utf8", callback);
-```
-
-A simplified conceptual flow is:
+A software server is an application/program that:
 
 ```text
-┌──────────────────────────┐
-│ JavaScript               │
-│ fs.readFile(...)         │
-└────────────┬─────────────┘
-             │
-             ▼
-┌──────────────────────────┐
-│ V8                       │
-│ JavaScript execution     │
-└────────────┬─────────────┘
-             │
-             ▼
-┌──────────────────────────┐
-│ libuv                    │
-└────────────┬─────────────┘
-             │
-             ▼
-┌──────────────────────────┐
-│ Thread Pool              │
-│                          │
-│  Worker 1                │
-│  Worker 2                │
-│  Worker 3                │
-│  Worker 4                │
-└────────────┬─────────────┘
-             │
-             ▼
-┌──────────────────────────┐
-│ Operating System         │
-└────────────┬─────────────┘
-             │
-             ▼
-       Operation Complete
-             │
-             ▼
-      Worker Thread Freed
-```
-
-The important point is that the worker thread is occupied while the operation assigned to it is being handled.
-
----
-
-# 📂 Thread Pool Example — File Reading
-
-Suppose the application starts:
-
-```javascript
-fs.readFile("file1.txt", callback1);
-```
-
-A simplified model is:
-
-```text
-file1.txt
-    ↓
-Thread Pool
-    ↓
-Worker Thread
-    ↓
-OS
-```
-
-While the file is being read, that worker is occupied.
-
-Once the operation completes:
-
-```text
-Worker Thread
+Receives Request
       ↓
-Task complete
+Processes Request
       ↓
-Worker becomes available
+Produces Response
+      ↓
+Sends Data to Client
 ```
 
-The same worker can then be used for another suitable operation.
-
-For example:
-
-```text
-File Read
-   ↓
-Worker 1
-   ↓
-Complete
-   ↓
-Worker 1 becomes free
-   ↓
-Another suitable operation
-   ↓
-Worker 1
-```
-
-The PDF uses file reading and cryptographic hashing to illustrate worker-thread use and reuse. fileciteturn3file1L33-L45
+The accompanying README explicitly defines hardware as a physical machine providing resources/services and software as an application that handles requests and delivers data. fileciteturn4file1L6-L10
 
 ---
 
-# 📏 Default Thread Pool Size
+# 🏗️ Server: Hardware vs Software
 
-The source material specifies:
+It is important not to confuse these two meanings.
+
+| Term                 | Meaning                                                |
+| -------------------- | ------------------------------------------------------ |
+| **Server Hardware**  | Physical machine providing computing/network resources |
+| **Server Software**  | Program listening for and processing requests          |
+| **Client**           | System/application making a request                    |
+| **Operating System** | Software layer on which applications run               |
+
+A simplified architecture is:
 
 ```text
-UV_THREADPOOL_SIZE=4
+┌─────────────────────────────┐
+│       Server Hardware       │
+│                             │
+│ CPU | RAM | Storage | NIC   │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│      Operating System       │
+│       Linux / Windows       │
+└──────────────┬──────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│       Server Software       │
+│   Node.js / Apache / etc.   │
+└──────────────┬──────────────┘
+               │
+               ▼
+             Client
 ```
 
-Therefore, the default thread-pool size described in this episode is:
+---
+
+# 🚀 Deploying an Application on a Server
+
+When someone says:
+
+> **"Deploy your application on a server."**
+
+the episode breaks this into three aspects:
+
+### 1. Hardware
+
+A physical or virtual machine provides:
 
 ```text
-4 threads
+CPU
+RAM
+Storage
+Network
 ```
 
-The PDF explicitly gives four as the default size. fileciteturn3file1L43-L49
+### 2. Operating System
+
+The server runs an operating system such as:
+
+```text
+Linux
+Windows
+```
+
+Your application runs on top of that operating system.
+
+### 3. Server Software
+
+A server application receives and handles client requests.
+
+Examples mentioned in the source include:
+
+```text
+Apache
+Node.js application server
+```
+
+The accompanying README explicitly presents these three layers: hardware, operating system, and server software. fileciteturn4file1L12-L20
+
+---
+
+# ☁️ AWS and Cloud Computing
+
+The Episode-11 PDF introduces AWS as a cloud provider that supplies cloud-based resources, including servers.
+
+## EC2
+
+An **EC2 instance** is presented as a virtual server rented from AWS.
 
 Conceptually:
 
 ```text
-          Thread Pool
-        ┌──────────────┐
-        │ Worker 1     │
-        │ Worker 2     │
-        │ Worker 3     │
-        │ Worker 4     │
-        └──────────────┘
+AWS
+ │
+ └── EC2 Instance
+        │
+        ├── CPU
+        ├── RAM
+        ├── Storage
+        ├── Operating System
+        └── Your Application
 ```
+
+The source explains that AWS manages the underlying hardware while you deploy your application on the virtual server. fileciteturn4file0L28-L33
+
+### Scalability
+
+The episode highlights the ability to adjust resources such as:
+
+```text
+Memory
+Processing Power
+```
+
+more easily in a cloud environment than on a personal laptop or desktop. fileciteturn4file0L34-L36
+
+### Reliability
+
+The source also highlights infrastructure such as:
+
+- Constant power
+- Internet backup
+- Redundant systems
+- High availability
+
+as advantages of cloud/server infrastructure. fileciteturn4file0L37-L39
 
 ---
 
-# ⏳ What Happens When More Tasks Arrive Than Threads?
+# 💻 Can a Laptop Be Used as a Server?
 
-Suppose the thread pool has:
-
-```text
-4 threads
-```
-
-and the application starts:
-
-```text
-5 simultaneous file operations
-```
-
-The first four operations can occupy the four available worker threads.
-
-The fifth operation waits until a worker becomes available.
-
-```text
-Task 1 ──► Worker 1
-Task 2 ──► Worker 2
-Task 3 ──► Worker 3
-Task 4 ──► Worker 4
-Task 5 ──► WAITING
-```
-
-When one operation completes:
-
-```text
-Worker 2
-   ↓
-Task complete
-   ↓
-Worker 2 becomes free
-   ↓
-Task 5 starts
-```
-
-The Episode-10 PDF explicitly gives this five-file-read example. fileciteturn3file1L46-L49
-
----
-
-# 📌 Important Consequence
-
-The thread pool has a finite number of workers.
-
-Therefore:
-
-```text
-Many thread-pool tasks
-        ↓
-Finite workers
-        ↓
-Some tasks may wait
-```
-
-This is an important consideration when an application performs a large amount of work that uses the libuv thread pool.
-
----
-
-# 🛠️ When Does libuv Use the Thread Pool?
-
-The Episode-10 material specifically identifies:
-
-- File-system (`fs`) operations
-- DNS lookups
-- Cryptographic methods
-
-as tasks for which libuv uses the thread pool. fileciteturn3file1L52-L55
-
-| Operation                      | Thread Pool in Episode                       |
-| ------------------------------ | -------------------------------------------- |
-| File-system operations         | ✅                                           |
-| DNS lookups                    | ✅                                           |
-| Cryptographic operations       | ✅                                           |
-| Normal network socket activity | ❌, handled through OS networking mechanisms |
-| JavaScript execution           | ❌                                           |
-
----
-
-# 🧠 Is Node.js Single-Threaded or Multi-Threaded?
-
-This is one of the major questions of the episode.
-
-The source material frames the answer according to the type of work:
-
-```text
-Synchronous JavaScript
-        ↓
-Single-threaded execution
-
-Asynchronous tasks using libuv's thread pool
-        ↓
-Multiple worker threads
-```
-
-The PDF explicitly states that synchronous code is single-threaded, while asynchronous tasks can use libuv's thread pool, making the system multi-threaded in that sense. fileciteturn3file1L53-L58
-
-### Interview-ready mental model
-
-```text
-                Node.js
-                   │
-        ┌──────────┴──────────┐
-        │                     │
-        ▼                     ▼
-   JavaScript              libuv
-   execution            async infrastructure
-        │                     │
-        ▼                     ▼
-      V8                Thread Pool
-                              │
-                    ┌─────────┼─────────┐
-                    ▼         ▼         ▼
-                 Worker     Worker    Worker
-```
-
-> **Node.js executes JavaScript on a main thread, while libuv can use worker threads for certain asynchronous operations.**
-
----
-
-# 🎲 Order of Execution Is Not Guaranteed
-
-When multiple thread-pool tasks are submitted, their completion order is not necessarily the same as their submission order.
-
-The accompanying notes explicitly state:
-
-```text
-The order of execution is not guaranteed.
-Whichever thread executes/finishes first will win.
-```
-
-fileciteturn3file0L10-L13
-
-Therefore:
-
-```text
-Submission order ≠ Completion order
-```
-
-Example:
-
-```text
-Task A ────────────────┐
-                       │
-Task B ────────┐       │
-               │       │
-Task C ──┐     │       │
-         │     │       │
-         ▼     ▼       ▼
-       Finish Finish Finish
-         C      B       A
-```
-
-The actual order depends on how the individual operations progress.
-
----
-
-# ⚙️ Changing the Thread Pool Size
-
-The episode asks whether the thread-pool size can be changed.
-
-The answer is:
-
-```text
 Yes.
-```
 
-The source demonstrates:
+The source explicitly answers:
 
-```javascript
-process.env.UV_THREADPOOL_SIZE = 8;
-```
+> **Yes, but with limitations.** fileciteturn4file0L40-L48
 
-The accompanying explanation says that a production system with heavy file handling or other tasks that benefit from additional threads can adjust the thread-pool size accordingly. fileciteturn3file1L64-L70
+A laptop can run server software and accept network requests.
 
-### Configuration concept
+For example:
 
 ```text
-Default:
-UV_THREADPOOL_SIZE = 4
-
-Example:
-UV_THREADPOOL_SIZE = 8
+Your Laptop
+    │
+    ├── Node.js
+    │
+    └── HTTP Server
 ```
 
-> Thread-pool sizing should be based on workload requirements rather than assuming that a larger number is always faster.
+However, there are practical limitations.
+
+## Hardware Constraints
+
+A laptop may have limited:
+
+```text
+RAM
+CPU
+Storage
+```
+
+which may not be sufficient for large workloads. fileciteturn4file0L42-L45
+
+## Internet Connectivity
+
+Home internet may have:
+
+- Less reliable connectivity
+- Dynamic IP addresses
+
+which makes publicly accessible hosting less suitable. fileciteturn4file0L46-L48
+
+## Power and Maintenance
+
+A laptop needs to remain:
+
+```text
+Powered On
+Connected to Internet
+Available continuously
+```
+
+Backup power and maintenance can also become concerns. The source contrasts this with cloud infrastructure such as AWS. fileciteturn4file0L51-L54
 
 ---
 
-# 🌐 Do APIs Use the Thread Pool?
+# 🟢 Software Servers in Node.js
 
-The episode asks:
+When you create an HTTP server in Node.js, you are creating **software that listens for client requests and responds to them**.
 
-> Suppose you have a server with many incoming requests, and users are hitting APIs. Do these APIs use the thread pool?
-
-The source answer is:
-
-```text
-No.
-```
-
-The following section explains that networking operations occur through sockets and that OS-level mechanisms such as `epoll` and `kqueue` can monitor many connections without requiring one thread per connection. fileciteturn3file1L73-L100
-
-So the episode's conceptual distinction is:
-
-```text
-File-system / DNS / Crypto
-          ↓
-     Thread Pool
-
-Network I/O
-          ↓
-Sockets + OS notification
-          ↓
-libuv
-```
-
----
-
-# 🌍 Networking in libuv
-
-When libuv interacts with the operating system for networking tasks, it uses **sockets**.
-
-The source explains that networking operations occur through sockets and that each socket has a socket descriptor, also called a file descriptor. fileciteturn3file1L78-L82
+The source explicitly describes a Node.js HTTP server as an example of a software server. fileciteturn4file0L55-L58
 
 Conceptually:
 
 ```text
 Client
    │
-   │ Network connection
+   │ Request
    ▼
-Socket
+Node.js HTTP Server
+   │
+   │ Process
+   ▼
+Response
    │
    ▼
-File Descriptor
-   │
-   ▼
-Operating System
-   │
-   ▼
-libuv
+Client
 ```
+
+---
+
+# 🌐 Client-Server Architecture
+
+The basic model is:
+
+```text
+Client
+   │
+   │ Request
+   ▼
+Server
+   │
+   │ Process
+   ▼
+Response
+   │
+   ▼
+Client
+```
+
+A **client** is an application/system accessing a server.
+
+A common client is:
+
+```text
+Web Browser
+```
+
+The accompanying README explains that the client opens a socket connection, while the server-side application listens for requests, retrieves the requested resource, and sends it back. fileciteturn4file1L22-L28
 
 ---
 
 # 🔌 Sockets
 
-A **socket** represents an endpoint for network communication.
+A **socket** provides a communication endpoint between the client and server.
 
-A server can have many socket connections:
+Conceptually:
 
 ```text
-Server
+Client
   │
-  ├── Socket / Connection 1
-  ├── Socket / Connection 2
-  ├── Socket / Connection 3
-  ├── Socket / Connection 4
-  └── ...
+  │ Socket Connection
+  ▼
+Server
 ```
 
-The episode explains why creating a separate thread for every connection does not scale well, especially when a server handles thousands of requests/connections. fileciteturn3file1L83-L89
+Both sides have network addresses.
+
+```text
+Client IP
+      ↓
+Client Socket
+      ↓
+Network
+      ↓
+Server Socket
+      ↓
+Server IP
+```
+
+### Important
+
+The episode explicitly distinguishes:
+
+```text
+Socket
+```
+
+from:
+
+```text
+WebSocket
+```
+
+They should not be treated as identical concepts.
 
 ---
 
-# 📄 File Descriptors
+# 🌐 TCP/IP
 
-A **file descriptor (FD)** is an operating-system-level identifier used to manage open resources.
-
-The episode states that file descriptors are integral to Unix-like operating systems such as:
-
-- Linux
-- macOS
-
-They are used to manage:
-
-- Open files
-- Sockets
-- Other I/O resources
-
-fileciteturn3file1L107-L114
-
-### Socket descriptor
-
-A socket descriptor is a special type of file descriptor associated with a network connection.
+The source states that sockets operate using the **TCP/IP protocol**:
 
 ```text
-File Descriptor
-      │
-      ├── File
-      ├── Socket
-      └── Other I/O resource
+TCP = Transmission Control Protocol
+IP  = Internet Protocol
 ```
 
-> The term "file descriptor" here is an OS abstraction; it does not mean that a socket is an ordinary file-system file.
+fileciteturn4file0L71-L76
+
+A simplified communication model is:
+
+```text
+Client
+   │
+   │ TCP/IP
+   ▼
+Network
+   │
+   ▼
+Server
+```
 
 ---
 
-# ⚡ `epoll` and `kqueue`
+# 📜 What is a Protocol?
 
-The episode introduces two OS-level notification mechanisms:
+A **protocol** is a set of rules that defines how computers communicate.
+
+Protocols determine things such as:
+
+- How data is structured
+- How data is transmitted
+- How communicating systems interpret the exchanged information
+
+The source explicitly defines a protocol as a set of rules determining how computers communicate and the format in which data is sent. fileciteturn4file0L80-L87
+
+---
+
+# 📡 HTTP, FTP and SMTP
+
+The Episode-11 material introduces several protocols.
+
+| Protocol | Full Form                     | Purpose           |
+| -------- | ----------------------------- | ----------------- |
+| **HTTP** | HyperText Transfer Protocol   | Web communication |
+| **FTP**  | File Transfer Protocol        | File transfer     |
+| **SMTP** | Simple Mail Transfer Protocol | Sending email     |
+
+The source explicitly identifies FTP for transferring files and SMTP for sending emails. It presents HTTP as the protocol/rules used for communication between web clients and servers. fileciteturn4file0L81-L89
+
+---
+
+# 🌍 HTTP Server
+
+When we talk about a typical web server, we often mean an:
 
 ```text
-Linux
+HTTP Server
+```
+
+Its basic job is:
+
+```text
+Receive HTTP Request
+        ↓
+Process Request
+        ↓
+Send HTTP Response
+```
+
+For a Node.js application:
+
+```text
+Browser
+   │
+   │ HTTP Request
+   ▼
+Node.js HTTP Server
+   │
+   │ HTTP Response
+   ▼
+Browser
+```
+
+---
+
+# 📦 How is Data Sent Over a Network?
+
+The source asks:
+
+> **When you make a server request, how is data sent?**
+
+The answer given is:
+
+> Data is sent in chunks, and these smaller units are known as **packets**. fileciteturn4file0L90-L97
+
+Conceptually:
+
+```text
+Large Data
+    ↓
+Broken into smaller units
+    ↓
+Packets
+    ↓
+Network
+    ↓
+Destination
+    ↓
+Data reconstructed/processed
+```
+
+The source associates TCP/IP with sending and managing these packets. fileciteturn4file0L92-L97
+
+---
+
+# 🌊 Streams and Buffers
+
+The episode connects network data transmission with two important Node.js concepts:
+
+```text
+Streams
+Buffers
+```
+
+The source states that Node.js uses streams and buffers when handling and writing code related to data transmission. fileciteturn4file0L96-L97
+
+This becomes especially relevant when dealing with:
+
+```text
+Videos
+Images
+Large files
+Network data
+```
+
+---
+
+# 🔎 DNS
+
+Humans generally use domain names:
+
+```text
+youtube.com
+```
+
+instead of remembering IP addresses.
+
+The source explains that domain names ultimately map to IP addresses, and this mapping is handled through the **Domain Name System (DNS)**. fileciteturn4file0L103-L110
+
+Conceptually:
+
+```text
+youtube.com
+     │
+     ▼
+    DNS
+     │
+     ▼
+IP Address
+     │
+     ▼
+Server
+```
+
+---
+
+# 🧭 Domain Name to IP Address
+
+Suppose the browser requests:
+
+```text
+youtube.com
+```
+
+A simplified process is:
+
+```text
+1. User enters:
+   youtube.com
+
+2. Browser needs an IP address.
+
+3. DNS resolves:
+   youtube.com
+       ↓
+   IP address
+
+4. Client connects to that server.
+
+5. HTTP server processes the request.
+
+6. Response data is returned.
+```
+
+The PDF illustrates this process visually on pages 9–10: the domain name is resolved through DNS, then the client contacts the server. fileciteturn4file0L103-L121
+
+---
+
+# 🌐 DNS Server
+
+A DNS server manages mappings between:
+
+```text
+Domain Name
+      ↕
+IP Address
+```
+
+When a browser requests a website:
+
+```text
+Browser
+   │
+   │ "youtube.com"
+   ▼
+DNS
+   │
+   │ Resolve
+   ▼
+IP Address
+   │
+   ▼
+Web Server
+```
+
+The source explains that once the IP is resolved, the request can be made to the corresponding server. fileciteturn4file0L112-L120
+
+---
+
+# 📺 Why Do Videos Sometimes Buffer?
+
+The source uses video delivery as an example.
+
+The requested content can be delivered in:
+
+```text
+Chunks
+   ↓
+Streams
+   ↓
+Buffers
+```
+
+If the application cannot receive/process data quickly enough, the client may temporarily run out of buffered data.
+
+The source explicitly connects video data being delivered in chunks with streams and buffers, using buffering as an intuitive example. fileciteturn4file0L118-L121
+
+---
+
+# 🔢 IP Address + Port
+
+An IP address identifies the machine/server.
+
+A **port** helps identify the particular application/service on that machine.
+
+The source gives the example:
+
+```text
+102.209.1.3:3000
+```
+
+The combination of:
+
+```text
+IP Address + Port
+```
+
+is used to identify where a particular HTTP server/application is listening. fileciteturn4file0L125-L137
+
+Conceptually:
+
+```text
+IP Address
+    ↓
+Which machine?
+
+Port
+    ↓
+Which application/service?
+```
+
+---
+
+# 🧩 Can Multiple Servers Run on One Machine?
+
+Yes.
+
+The source explicitly asks:
+
+> **Can I create multiple servers?**
+
+Answer:
+
+> **Yes, you can create multiple HTTP servers.** fileciteturn4file0L123-L137
+
+For example:
+
+```text
+Same Server Machine
+       │
+       ├── Port 3000 → Application A
+       │
+       ├── Port 3001 → Application B
+       │
+       └── Port 3002 → Application C
+```
+
+The port number helps determine which application/service should receive the request.
+
+---
+
+# 🔀 Mapping Domain Names, Ports and Paths
+
+The episode gives the conceptual example:
+
+```text
+102.209.1.3:3000
+    ↓
+React Application
+
+102.209.1.3:3001
+    ↓
+Node.js Application
+```
+
+It then adds URL paths.
+
+For example:
+
+```text
+youtube.com
+     ↓
+React Application
+
+youtube.com/api/...
+     ↓
+Node.js Application
+```
+
+Another example from the source:
+
+```text
+namastedev.com
+      ↓
+React application on port 3000
+
+namastedev.com/node
+      ↓
+Node.js application on port 3001
+```
+
+fileciteturn4file0L149-L166
+
+### Conceptual mapping
+
+```text
+Domain
   ↓
-epoll
-
-macOS
+DNS
   ↓
-kqueue
-```
-
-They allow multiple file descriptors to be monitored efficiently.
-
-The source describes them as notification mechanisms that manage many connections without requiring a separate thread for every connection. fileciteturn3file1L87-L100
-
----
-
-# 🔍 How `epoll` / `kqueue` Works
-
-The source's conceptual flow is:
-
-```text
-                Operating System
-                       │
-              ┌────────┴────────┐
-              ▼                 ▼
-            epoll             kqueue
-           (Linux)           (macOS)
-              │                 │
-              └────────┬────────┘
-                       ▼
-                Monitor many
-                file descriptors
-                       │
-                       ▼
-                Socket activity
-                       │
-                       ▼
-                  OS Kernel
-                       │
-                       ▼
-                    libuv
-```
-
-According to the source:
-
-1. `epoll`/`kqueue` monitors multiple file descriptors.
-2. The OS kernel manages the mechanism.
-3. The kernel detects activity or changes on sockets.
-4. The kernel notifies libuv.
-5. libuv can process the relevant activity.
-
-fileciteturn3file1L90-L98
-
----
-
-# 🚀 Why `epoll` / `kqueue` Matter
-
-Imagine:
-
-```text
-10,000 connections
-```
-
-A thread-per-connection design would conceptually look like:
-
-```text
-Connection 1 → Thread 1
-Connection 2 → Thread 2
-Connection 3 → Thread 3
-...
-Connection 10,000 → Thread 10,000
-```
-
-That is not practical at large scale.
-
-Instead:
-
-```text
-10,000 sockets
-       │
-       ▼
-epoll / kqueue
-       │
-       ▼
-OS Kernel
-       │
-       ▼
-Report active/changed sockets
-       │
-       ▼
-libuv
-```
-
-This lets the system monitor many connections without creating a thread for every connection.
-
-The source specifically highlights scalability, performance, and resource utilization in high-concurrency environments. fileciteturn3file1L97-L101
-
----
-
-# ⚖️ Thread Pool vs Network I/O
-
-This distinction is central to Episode 10.
-
-| Work                             | Mechanism emphasized in episode |
-| -------------------------------- | ------------------------------- |
-| File-system operations           | libuv thread pool               |
-| DNS lookups                      | libuv thread pool               |
-| Cryptographic operations         | libuv thread pool               |
-| Network socket activity          | OS networking mechanisms        |
-| Linux network event notification | `epoll`                         |
-| macOS network event notification | `kqueue`                        |
-
-### Mental model
-
-```text
-                  libuv
-                    │
-          ┌─────────┴─────────┐
-          │                   │
-          ▼                   ▼
-    Thread Pool          OS Networking
-          │                   │
-          │             ┌─────┴─────┐
-          │             ▼           ▼
-          │          epoll        kqueue
-          │          Linux        macOS
-          │
-          ▼
-  fs / DNS / crypto
+IP Address
+  ↓
+Port
+  ↓
+Application
+  ↓
+Path / Route
+  ↓
+Specific functionality
 ```
 
 ---
 
-# 📡 Event Emitters
+# 🏢 Distributed Server Architecture
 
-The episode introduces **Event Emitters** as another Node.js concept to study.
+In large organizations, applications are often distributed across multiple servers rather than putting everything on one machine.
 
-Event Emitters are used to handle asynchronous events.
+The source describes this as a way to improve:
 
-The `EventEmitter` class is provided by Node.js's:
+- Scalability
+- Reliability
+- Performance
+- Separation of concerns
+- Resilience
+
+fileciteturn4file0L167-L170
+
+A simplified architecture is:
+
+```text
+                    Client
+                      │
+                      ▼
+               Frontend Server
+                      │
+                      ▼
+                Backend Server
+                 /     |      \
+                /      |       \
+               ▼       ▼        ▼
+           Database   Files    Media
+                         │
+                         ▼
+                        CDN
+```
+
+---
+
+# 🎨 Frontend Server
+
+A frontend server handles the user interface resources.
+
+The source describes it as serving:
+
+```text
+HTML
+CSS
+JavaScript
+```
+
+that the browser needs to render the website. fileciteturn4file0L171-L176
+
+Conceptually:
+
+```text
+Browser
+   ↓
+Frontend Server
+   ↓
+HTML / CSS / JS
+   ↓
+Rendered UI
+```
+
+---
+
+# ⚙️ Backend Server
+
+The backend server handles:
+
+- Application logic
+- Requests
+- Business operations
+- Database interaction
+
+The source states that the backend processes logic, handles requests, and interacts with the database. fileciteturn4file0L177-L182
+
+Conceptually:
+
+```text
+Frontend
+   │
+   │ API Request
+   ▼
+Backend
+   │
+   ├── Business Logic
+   └── Database
+```
+
+---
+
+# 🗄️ Database Server
+
+The database is often hosted separately.
+
+The source describes a dedicated database server as a powerful server optimized for storing and managing data. fileciteturn4file0L183-L187
+
+Flow:
+
+```text
+Client
+   ↓
+Backend
+   ↓
+Database Server
+   ↓
+Data
+   ↓
+Backend
+   ↓
+Client
+```
+
+---
+
+# 🎬 Media and File Servers
+
+Large files such as:
+
+```text
+Videos
+Images
+Other Media
+```
+
+may be stored on specialized servers.
+
+The source explains that media servers can be optimized for delivering large amounts of data efficiently. fileciteturn4file0L188-L194
+
+For example:
+
+```text
+User
+  ↓
+Application
+  ↓
+Media Server
+  ↓
+Video
+```
+
+---
+
+# 🌎 CDN
+
+The source mentions that images may be stored on a different server and can be managed through a **Content Delivery Network (CDN)** to improve delivery speed to users worldwide. fileciteturn4file0L193-L194
+
+Conceptually:
+
+```text
+Origin Server
+     ↓
+    CDN
+ ┌───┼───┐
+ ▼   ▼   ▼
+Edge Edge Edge
+```
+
+---
+
+# 🔄 Inter-Server Communication
+
+Servers can communicate with other servers to obtain the data required to fulfill a request.
+
+For example:
+
+```text
+Client
+   │
+   ▼
+Backend Server
+   │
+   │ API call
+   ▼
+Media Server
+   │
+   │ Video data
+   ▼
+Backend / Frontend
+   │
+   ▼
+Client
+```
+
+The source gives a video example where one server can make an API call to another server hosting video content and then return the required content to the client. fileciteturn4file0L195-L200
+
+---
+
+# 🏗️ Example: `namastedev.com` Architecture
+
+The source gives this conceptual architecture:
+
+```text
+                    ┌─────────────────┐
+                    │     Client      │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │ AWS Web Server  │
+                    │                 │
+                    │ Frontend        │
+                    │ Backend         │
+                    └───┬────┬────┬───┘
+                        │    │    │
+             ┌──────────┘    │    └──────────┐
+             ▼               ▼               ▼
+      Database Server   Media/File Server   CDN
+```
+
+The PDF's visual on page 15 depicts a client communicating with a web server that connects to separate database, file, and image resources. fileciteturn4file0L201-L209
+
+---
+
+# 🔌 Socket vs WebSocket
+
+This is a major distinction in the episode.
+
+## Socket Connection
+
+The source describes a typical website request as:
+
+```text
+Client
+  ↓
+Open Socket
+  ↓
+Send Request
+  ↓
+Server Processes
+  ↓
+Receive Response
+  ↓
+Connection Closed
+```
+
+The accompanying README describes this as a typical single request-response cycle. fileciteturn4file1L41-L44
+
+---
+
+# 🔄 WebSocket
+
+WebSockets keep the connection open.
+
+```text
+Client ═════════════════ Server
+          Persistent
+          Connection
+```
+
+After establishing the connection:
+
+```text
+Client ─────► Server
+Client ◄───── Server
+Client ─────► Server
+Client ◄───── Server
+```
+
+Both sides can communicate without repeatedly establishing a new connection.
+
+The source explains that this persistent connection is useful for real-time applications such as:
+
+- Chat applications
+- Online gaming
+- Live updates
+
+fileciteturn4file0L220-L235
+
+---
+
+# ⚖️ Socket vs WebSocket Comparison
+
+| Feature             | Typical Socket Request/Response                        | WebSocket                     |
+| ------------------- | ------------------------------------------------------ | ----------------------------- |
+| Connection          | Request-response oriented                              | Persistent                    |
+| Connection lifetime | Typically closed after exchange in the episode's model | Remains open                  |
+| Communication       | Request → response                                     | Two-way ongoing communication |
+| Real-time use       | Less suitable                                          | Highly suitable               |
+| Chat                | Not ideal for continuous updates                       | Suitable                      |
+| Live updates        | Less suitable                                          | Suitable                      |
+| Gaming              | Less suitable for persistent communication             | Suitable                      |
+
+### Simple memory trick
+
+```text
+Socket:
+Connect → Request → Response → Close
+
+WebSocket:
+Connect → Keep Open → Communicate Continuously
+```
+
+---
+
+# 🧑‍💻 Creating a Server with Node.js
+
+The accompanying README contains a basic Node.js HTTP server.
 
 ```javascript
-events;
-```
+const http = require("node:http");
 
-module.
+const port = 999;
 
-The basic model is:
+const server = http.createServer(function (req, res) {
+  res.end("server Created");
+});
 
-```text
-Create EventEmitter
-        ↓
-Register listener
-        ↓
-Emit event
-        ↓
-Listener executes
-```
-
-The source describes the following three steps:
-
-1. Create an EventEmitter.
-2. Use `on()` to register listeners.
-3. Use `emit()` to trigger events and pass data to listeners.
-
-fileciteturn3file1L115-L128
-
----
-
-# 🏗️ Creating an EventEmitter
-
-Example:
-
-```javascript
-const EventEmitter = require("events");
-
-const emitter = new EventEmitter();
-```
-
-Register a listener:
-
-```javascript
-emitter.on("message", (data) => {
-  console.log("Received:", data);
+server.listen(port, () => {
+  console.log("Server running on port " + port);
 });
 ```
 
-Emit the event:
+The source uses:
+
+```text
+localhost:999
+```
+
+and creates the server using Node.js's built-in `http` module. fileciteturn4file1L46-L58
+
+---
+
+# 🔍 Understanding the Code
+
+## 1. Import the HTTP module
 
 ```javascript
-emitter.emit("message", "Hello");
+const http = require("node:http");
+```
+
+This loads Node.js's built-in HTTP functionality.
+
+---
+
+## 2. Define the port
+
+```javascript
+const port = 999;
+```
+
+The server will listen on port `999`.
+
+---
+
+## 3. Create the server
+
+```javascript
+const server = http.createServer(function (req, res) {
+  res.end("server Created");
+});
+```
+
+The callback receives:
+
+```text
+req → Request
+res → Response
 ```
 
 Conceptually:
 
 ```text
-                EventEmitter
-                     │
-          ┌──────────┴──────────┐
-          ▼                     ▼
-        on()                  emit()
-          │                     │
-          ▼                     ▼
-   Register listener       Trigger event
-                                │
-                                ▼
-                           Listener runs
+Client Request
+      ↓
+     req
+      ↓
+createServer callback
+      ↓
+     res
+      ↓
+Client Response
 ```
 
 ---
 
-# 🌊 Streams
-
-**Streams** are Node.js objects that facilitate reading from or writing to a data source continuously.
-
-The episode states that Streams are particularly useful when handling large amounts of data efficiently. fileciteturn3file1L129-L132
-
-Conceptually:
-
-```text
-Large Data Source
-       │
-       ▼
-    Stream
-       │
-       ├── Chunk 1
-       ├── Chunk 2
-       ├── Chunk 3
-       ├── Chunk 4
-       └── ...
-```
-
-The main idea is continuous data flow rather than treating a large data source as one monolithic operation.
-
----
-
-# 🧱 Buffers
-
-**Buffers** are used in Node.js to handle **binary data**.
-
-The source explains that Buffers provide a way to work with raw memory allocations and are useful for operations involving binary data, such as:
-
-- Reading files
-- Network communication
-
-fileciteturn3file1L133-L136
-
-Conceptually:
-
-```text
-Binary Data
-    │
-    ▼
-  Buffer
-    │
-    ├── Byte
-    ├── Byte
-    ├── Byte
-    └── ...
-```
-
----
-
-# 🔗 Pipes
-
-Pipes manage the flow of data between streams.
-
-The episode describes them as a way to simplify reading from a readable stream and writing to a writable stream. fileciteturn3file1L137-L140
-
-Conceptually:
-
-```text
-Readable Stream
-       │
-       │ pipe()
-       ▼
-Writable Stream
-```
-
-Example:
+## 4. Start listening
 
 ```javascript
-readableStream.pipe(writableStream);
+server.listen(port, () => {
+  console.log("Server running on port " + port);
+});
 ```
 
-The model is:
+This tells Node.js to listen for incoming connections on the specified port.
+
+---
+
+# 🛣️ Handling Different URLs
+
+The accompanying README then demonstrates checking the requested URL:
+
+```javascript
+const http = require("node:http");
+
+const port = 999;
+
+const server = http.createServer(function (req, res) {
+  if (req.url === "/getSecretData") {
+    res.end("You are a human and the the secret so chill");
+  }
+
+  res.end("server Created");
+});
+
+server.listen(port, () => {
+  console.log("Server running on port " + port);
+});
+```
+
+The source demonstrates the idea of handling a route such as:
 
 ```text
-Source
-  ↓
-Readable Stream
-  ↓
-Pipe
-  ↓
-Writable Stream
-  ↓
-Destination
+localhost:3000/getsecretdata
 ```
 
----
-
-# 🚫 Don't Block the Main Thread
-
-One of the most important final lessons is:
-
-> **DON'T BLOCK THE MAIN THREAD**
-
-The accompanying notes specifically recommend avoiding:
-
-- `sync` methods
-- Operations on heavy JSON objects
-- Complex regular expressions
-- Complex calculations
-- Large or infinite loops
-
-fileciteturn3file0L27-L33
-
----
-
-# ❌ Avoid Synchronous Methods
-
-For example:
-
-```javascript
-fs.readFileSync("large-file.txt");
-```
-
-Synchronous methods can block the main JavaScript execution path.
-
-The practical principle is:
+while the code itself uses:
 
 ```text
-Main Thread
-     │
-     ├── Keep responsive
-     │
-     └── Avoid unnecessary blocking work
+/getSecretData
 ```
+
+fileciteturn4file1L61-L75
+
+> **Note:** The source contains a capitalization mismatch between the displayed URL and the route string. Preserve this distinction when testing the code because URL path matching is case-sensitive in typical Node.js request handling.
 
 ---
 
-# ❌ Avoid Heavy JSON Operations
+# 🛣️ URL Routing Concept
 
-Very large JSON structures can require substantial CPU and memory work.
-
-For example:
-
-```javascript
-JSON.parse(veryLargeString);
-```
-
-or:
-
-```javascript
-JSON.stringify(veryLargeObject);
-```
-
-can place significant work on the main execution path.
-
-The source notes explicitly call out operations on heavy JSON objects as a main-thread concern. fileciteturn3file0L29-L32
-
----
-
-# ❌ Avoid Complex Regular Expressions
-
-Complex regular expressions can be expensive to evaluate.
-
-The source notes explicitly include complex regular expressions in the list of work that should be avoided when it can place excessive load on the main thread. fileciteturn3file0L29-L33
-
----
-
-# ❌ Avoid Complex Calculations and Infinite Loops
-
-For example:
-
-```javascript
-while (true) {
-  // ...
-}
-```
-
-can prevent the JavaScript thread from progressing.
-
-Likewise, unnecessarily expensive calculations can consume the main thread.
-
-The source notes specifically mention complex calculations and big/infinite loops. fileciteturn3file0L29-L33
-
----
-
-# 🧠 Why Blocking the Main Thread Is Dangerous
-
-Consider:
+A URL can contain:
 
 ```text
-Request A
+Protocol
    ↓
-Heavy CPU operation
+Domain
    ↓
-Main thread blocked
-```
-
-While the main thread is occupied:
-
-```text
-Request B → waiting
-Request C → waiting
-Request D → waiting
-Request E → waiting
-```
-
-The main JavaScript execution path cannot efficiently process other JavaScript work until the blocking operation finishes.
-
-Therefore:
-
-```text
-Responsive Node.js application
-          ↓
-Keep main thread available
-```
-
----
-
-# 🌳 Important Data Structures
-
-The accompanying notes explicitly emphasize:
-
-> **Data Structures is important**
-
-and associate:
-
-```text
-epoll  → Red-Black tree
-timers → min heap
-```
-
-fileciteturn3file0L35-L37
-
-The larger lesson is that asynchronous systems rely on appropriate data structures and algorithms underneath their APIs.
-
----
-
-# 🌲 `epoll` and Red-Black Tree
-
-The source notes associate:
-
-```text
-epoll
-  ↓
-Red-Black tree
-```
-
-This is one of the implementation-level relationships highlighted in the accompanying notes.
-
----
-
-# ⏱️ Timers and Min Heap
-
-The accompanying notes associate:
-
-```text
-timers
+Port
    ↓
-min heap
+Path
 ```
-
-A min heap is useful when the system needs efficient access to the smallest/earliest timer value.
-
-Conceptually:
-
-```text
-          Earliest Timer
-                ↓
-              MIN
-             /   \
-           Timer Timer
-```
-
-The episode's lesson is that data structures are an important part of building efficient systems.
-
----
-
-# 🏷️ Naming Is Important
-
-Another final lesson is:
-
-> **Naming is very important.**
-
-fileciteturn3file0L39-L40
-
-Good naming improves:
-
-- Readability
-- Maintainability
-- Debugging
-- Team collaboration
-- Code comprehension
 
 For example:
 
-```javascript
-const x = 100;
+```text
+http://localhost:999/getSecretData
 ```
 
-is less descriptive than:
+can be conceptually broken into:
 
-```javascript
-const requestTimeout = 100;
+```text
+http
+  ↓
+Protocol
+
+localhost
+  ↓
+Host
+
+999
+  ↓
+Port
+
+/getSecretData
+  ↓
+Path
 ```
 
-Names should communicate intent.
+The server can inspect:
+
+```javascript
+req.url;
+```
+
+and decide what response to return.
 
 ---
 
-Understanding Node.js deeply therefore involves gradually learning the systems underneath the runtime.
+# ⚡ Express
 
----
+At the end of the episode, the source introduces **Express**.
 
-# 🧩 Thread Pool vs Event Loop vs OS
+The accompanying README states:
 
-Keep these responsibilities separate:
+> **Express is a framework built on top of Node.js that makes our lives easier.** fileciteturn4file1L80-L80
 
-| Component           | Main Role                                       |
-| ------------------- | ----------------------------------------------- |
-| **V8**              | Executes JavaScript                             |
-| **libuv**           | Provides asynchronous/event-loop infrastructure |
-| **Thread Pool**     | Worker threads for suitable operations          |
-| **Event Loop**      | Coordinates asynchronous callback execution     |
-| **OS Kernel**       | Manages low-level system and networking work    |
-| **epoll**           | Linux I/O event notification mechanism          |
-| **kqueue**          | macOS I/O event notification mechanism          |
-| **Socket**          | Network communication endpoint                  |
-| **File Descriptor** | OS identifier for an open resource              |
+The basic relationship is:
+
+```text
+Node.js
+   ↓
+HTTP capabilities
+   ↓
+Express
+   ↓
+Easier server development
+```
+
+Express simplifies common server-side tasks such as:
+
+- Routing
+- Request handling
+- Middleware
+- API development
+
+The supplied source specifically establishes Express as a framework built on Node.js; detailed middleware/API features are not covered in the supplied Episode-11 material.
 
 ---
 
 # ❓ Important Interview Questions
 
-## Q1. What is the libuv thread pool?
+## Q1. What is a server?
 
-**Answer:**  
-It is a set of worker threads used by libuv for certain asynchronous operations such as file-system operations, DNS lookups, and cryptographic work.
+**Answer:**
+
+A server can refer to hardware or software. Hardware is a machine providing resources/services, while server software is an application that handles requests and delivers responses/data to clients. fileciteturn4file1L6-L10
 
 ---
 
-## Q2. What is the default size of the libuv thread pool?
+## Q2. What is the difference between a client and a server?
 
-**Answer:**  
-The Episode-10 material specifies:
+**Answer:**
+
+A client requests resources/services, while a server listens for requests, processes them, and returns responses.
 
 ```text
-4 threads
+Client → Request → Server
+Client ← Response ← Server
 ```
 
-with:
+---
+
+## Q3. What is a socket?
+
+**Answer:**
+
+A socket is a communication endpoint used for communication between a client and server.
+
+---
+
+## Q4. What is TCP/IP?
+
+**Answer:**
+
+TCP/IP refers to the Transmission Control Protocol / Internet Protocol suite used for network communication. The episode states that sockets operate using TCP/IP. fileciteturn4file0L71-L76
+
+---
+
+## Q5. What is a protocol?
+
+**Answer:**
+
+A protocol is a set of rules defining how computers communicate and how data is formatted/transmitted. fileciteturn4file0L80-L87
+
+---
+
+## Q6. What is HTTP?
+
+**Answer:**
+
+HTTP stands for **HyperText Transfer Protocol** and defines the rules for communication between web clients and servers.
+
+---
+
+## Q7. What is DNS?
+
+**Answer:**
+
+DNS, or Domain Name System, manages the mapping between domain names and IP addresses. fileciteturn4file0L103-L117
+
+---
+
+## Q8. Why do we need DNS?
+
+**Answer:**
+
+Humans use memorable domain names instead of memorizing IP addresses. DNS translates a domain name into an IP address that can be used to reach the server.
+
+---
+
+## Q9. What is a port?
+
+**Answer:**
+
+A port identifies a particular application/service listening on a server. Combining an IP address with a port helps direct traffic to the intended application.
+
+Example:
 
 ```text
-UV_THREADPOOL_SIZE=4
+102.209.1.3:3000
 ```
 
-fileciteturn3file1L43-L49
+fileciteturn4file0L125-L137
 
 ---
 
-## Q3. What happens if five file operations are started simultaneously with a four-thread pool?
+## Q10. Can multiple applications run on one server?
 
-**Answer:**  
-Four operations occupy the four available worker threads, while the fifth waits until one becomes available. fileciteturn3file1L46-L49
+**Answer:**
 
----
+Yes. Different applications can listen on different ports.
 
-## Q4. Which operations use the libuv thread pool?
+Example:
 
-**Answer:**  
-The episode specifically lists:
+```text
+Server
+ ├── :3000 → React
+ ├── :3001 → Node.js
+ └── :3002 → Another service
+```
 
-- File-system operations
-- DNS lookups
-- Cryptographic methods
-
-fileciteturn3file1L52-L55
-
----
-
-## Q5. Is Node.js single-threaded?
-
-**Answer:**  
-The source explains that synchronous JavaScript execution is single-threaded, while asynchronous tasks can use libuv's thread pool. Therefore, the overall runtime architecture can involve multiple threads even though JavaScript execution is centered on a main thread. fileciteturn3file1L56-L58
+The episode explicitly uses ports 3000 and 3001 to illustrate this. fileciteturn4file0L149-L166
 
 ---
 
-## Q6. Can the thread-pool size be changed?
+## Q11. What is the difference between a socket and WebSocket?
 
-**Answer:**  
-Yes. The source demonstrates:
+**Answer:**
+
+The episode presents a typical socket connection as request-response oriented, while WebSocket keeps a connection open for continuous two-way communication. WebSockets are therefore particularly useful for real-time applications. fileciteturn4file0L220-L235
+
+---
+
+## Q12. What is a distributed server architecture?
+
+**Answer:**
+
+It is an architecture where different parts of an application are deployed across different servers or infrastructure components.
+
+For example:
+
+```text
+Frontend Server
+Backend Server
+Database Server
+Media Server
+CDN
+```
+
+The source presents this separation as useful for scalability, reliability, performance, and resilience. fileciteturn4file0L167-L216
+
+---
+
+## Q13. Why separate frontend and backend servers?
+
+**Answer:**
+
+The source explains that larger systems may separate these responsibilities for better performance and security and to allow each component to be optimized for its specific role. fileciteturn4file0L171-L182
+
+---
+
+## Q14. Why use a dedicated database server?
+
+**Answer:**
+
+A dedicated database server can be optimized for storing and managing application data, while the backend communicates with it when data needs to be retrieved or stored. fileciteturn4file0L183-L187
+
+---
+
+## Q15. Why use a media/file server?
+
+**Answer:**
+
+Large files such as videos and images can require specialized infrastructure optimized for storage and delivery. fileciteturn4file0L188-L194
+
+---
+
+## Q16. How does Node.js create a server?
+
+**Answer:**
+
+Using the built-in HTTP module:
 
 ```javascript
-process.env.UV_THREADPOOL_SIZE = 8;
+const http = require("node:http");
+
+const server = http.createServer((req, res) => {
+  res.end("Hello World");
+});
+
+server.listen(999);
 ```
 
-fileciteturn3file1L64-L70
+The accompanying source demonstrates this pattern with `http.createServer()` and `server.listen()`. fileciteturn4file1L46-L58
 
 ---
 
-## Q7. Do normal incoming API requests use the thread pool?
+## Q17. What are `req` and `res`?
 
-**Answer:**  
-The episode's answer is **No**. Network operations are handled through sockets and OS-level mechanisms such as `epoll` or `kqueue`, rather than using a dedicated thread for every connection. fileciteturn3file1L73-L100
+**Answer:**
 
----
+They represent the request and response objects passed to the server callback.
 
-## Q8. What is a socket?
+```javascript
+(req, res);
+```
 
-**Answer:**  
-A socket is a network communication endpoint. The source explains that libuv uses sockets for networking operations. fileciteturn3file1L78-L82
-
----
-
-## Q9. What is a file descriptor?
-
-**Answer:**  
-A file descriptor is an OS-level identifier used to manage open resources such as files and sockets on Unix-like operating systems. fileciteturn3file1L107-L114
+You inspect the request and use the response object to send data back to the client.
 
 ---
 
-## Q10. What is `epoll`?
+## Q18. How can you handle different URLs in Node.js?
 
-**Answer:**  
-`epoll` is a Linux OS notification mechanism used to monitor multiple file descriptors for activity efficiently.
+**Answer:**
 
----
+You can inspect:
 
-## Q11. What is `kqueue`?
+```javascript
+req.url;
+```
 
-**Answer:**  
-`kqueue` is the macOS OS-level notification mechanism discussed in this episode.
+and conditionally return different responses.
 
-The source describes both as mechanisms that allow multiple connections to be monitored without requiring a thread for every connection. fileciteturn3file1L87-L98
+Example:
 
----
+```javascript
+if (req.url === "/getSecretData") {
+  res.end("Secret Data");
+}
+```
 
-## Q12. Why doesn't Node.js create one thread per network connection?
-
-**Answer:**  
-Because a high-concurrency server can have thousands of connections. Creating a thread for every connection would be impractical. OS mechanisms such as `epoll` and `kqueue` allow many file descriptors to be monitored efficiently. fileciteturn3file1L83-L100
-
----
-
-## Q13. What is an EventEmitter?
-
-**Answer:**  
-An EventEmitter is a Node.js mechanism for handling named asynchronous events. You register listeners using `on()` and trigger events using `emit()`. fileciteturn3file1L115-L128
+The source demonstrates this exact routing concept. fileciteturn4file1L61-L75
 
 ---
 
-## Q14. What are Streams?
+## Q19. What is Express?
 
-**Answer:**  
-Streams are Node.js objects used for continuously reading from or writing to a data source and are particularly useful for handling large amounts of data efficiently. fileciteturn3file1L129-L132
+**Answer:**
 
----
-
-## Q15. What is a Buffer?
-
-**Answer:**  
-A Buffer is used to work with binary data and raw memory, including data involved in file operations and network communication. fileciteturn3file1L133-L136
-
----
-
-## Q16. What is a Pipe?
-
-**Answer:**  
-A Pipe connects streams and simplifies the flow of data from a readable stream to a writable stream. fileciteturn3file1L137-L140
-
----
-
-## Q17. Why should we avoid blocking the main thread?
-
-**Answer:**  
-Blocking operations prevent the main JavaScript execution path from processing other work efficiently. The source specifically warns against synchronous methods, heavy JSON operations, complex regular expressions, and complex calculations or infinite loops. fileciteturn3file0L27-L33
-
----
-
-## Q18. Is the completion order of thread-pool tasks guaranteed?
-
-**Answer:**  
-No. The accompanying notes explicitly state that execution order is not guaranteed and that whichever thread/task completes first can win. fileciteturn3file0L10-L13
+Express is a framework built on top of Node.js that simplifies server development. fileciteturn4file1L80-L80
