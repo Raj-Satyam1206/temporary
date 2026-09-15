@@ -1,6 +1,6 @@
 # Episode 13 — Creating a Database & MongoDB
 
-## This episode covers the basics of **MongoDB**, setting up a MongoDB Atlas database, connecting it using MongoDB Compass and Node.js, and performing basic CRUD operations.
+This episode covers the basics of **MongoDB**, setting up a MongoDB Atlas database, connecting it using MongoDB Compass and Node.js, and performing basic CRUD operations.
 
 ## 🍃 MongoDB
 
@@ -194,17 +194,5 @@ Mongoose provides:
 - Validation
 - Middleware
 - Easier interaction with MongoDB
-
----
-
-## 🎯 Key Takeaways
-
-- MongoDB is a NoSQL document database.
-- MongoDB Atlas provides a managed cloud database.
-- MongoDB Compass provides a GUI for working with MongoDB.
-- MongoDB stores data in collections and documents.
-- The MongoDB Node.js driver allows applications to communicate with MongoDB.
-- CRUD means Create, Read, Update, and Delete.
-- Mongoose provides a convenient schema-based way to work with MongoDB.
 
 ---
